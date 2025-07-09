@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+{% load static %}
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'css/styles.css'%}">
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <title>DPSYSTEM - Doctor Dashboard</title>
+    <style>
+        /* Add any additional styling for tabs here */
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            margin-right: 20px;
+            cursor: pointer;
+            padding: 10px;
+            background-color: #333;
+            color: #fff;
+            border: 1px solid #555;
+            border-radius: 5px;
+        }
+
+        .tab.active {
+            background-color: #555;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>DPSYSTEM</h1>
+        <button style="text-align:right;"><a href="{% url 'logout' %}">Logout</a></button>
+        <nav>
+            <ul>
+                <!-- ... Your existing navigation links ... -->
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section>
+            <h2>Doctor Dashboard</h2>
+
+
+
+                <!-- Tabs -->
+                <div class="tabs">
+                    <div class="tab active" onclick="showTab('profile')">Profile</div>
+                    <div class="tab" onclick="showTab('patients')">Patients</div>
+                    <div class="tab" onclick="showTab('subscription')">Subscription</div>
+                </div>
+
+                <!-- Profile Tab Content -->
+                <div class="tab-content active" id="profile">
+                    <p>Update your profile information:</p>
+
+                  <form id="profileForm" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <div class="form-group">
+        <label for="first_name">First Name:</label>
+        <input type="text" class="form-control" id="first_name" name="first_name" {% if record %}value="{{ firstname }}"{% endif %} required>
+    </div>
+
+    <div class="form-group">
+        <label for="last_name">Last Name:</label>
+        <input type="text" class="form-control" id="last_name" name="last_name" {% if record %}value="{{ lastname }}"{% endif %} required>
+    </div>
+
+    <div class="form-group">
+        <label for="dob">Date of Birth:</label>
+        <input type="date" class="form-control" id="dob" name="dob" {% if record %}value="{{ dob|date:'Y-m-d' }}"{% endif %} required>
+    </div>
+
+    {% if record %}
+        <!-- Display current profile image for existing records -->
+        <div class="form-group">
+            <img src="/media/{{ image }}" alt="Current Profile Image" style="max-width: 200px;">
+        </div>
+    {% endif %}
+
+    <div class="form-group">
+        <label for="profile_image">Profile Image:</label>
+        <input type="file" class="form-control-file" id="profile_image" name="profile_image" accept="image/*">
+    </div>
+
+    {% if record %}
+        <!-- Additional fields for existing records -->
+        <div class="form-group">
+            <label for="email">Email:</label>
+            <input type="email" class="form-control" id="email" name="email" value="{{ email }}" readonly>
+        </div>
+
+        <div class="form-group">
+            <label for="username">Username:</label>
+            <input type="text" class="form-control" id="username" name="username" value="{{ username }}" readonly>
+        </div>
+    {% endif %}
+
+    <button type="button" class="btn btn-primary" onclick="updateProfile()"> {% if record %}Update{% else %}Save{% endif %}</button>
+</form>
+
+                </div>
+
+                <!-- Patients Tab Content -->
+                <div class="tab-content" id="patients">
+                    <p>Patients information.</p>
+                    <!-- Add content related to patients -->
+                     <table class="table">
+        <thead>
+            <tr>
+                <th>First Name</th>
+                <th>Last Name</th>
+                <th>Date of Birth</th>
+                <th>NIC</th>
+                <th>Profile Image</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for patient in pat_rec %}
+                <tr>
+                    <td>{{ patient.first_name }}</td>
+                    <td>{{ patient.last_name }}</td>
+                    <td>{{ patient.dob }}</td>
+                    <td>{{ patient.nic }}</td>
+                    <td>
+                        {% if patient.profile_image %}
+                            <img src="{{ patient.profile_image.url }}" alt="Profile Image" style="max-width: 50px;">
+                        {% else %}
+                            No Image
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+                </div>
+
+                <!-- Subscription Tab Content -->
+                <div class="tab-content" id="subscription">
+                    <p>Subscription information goes here.</p>
+                    <!-- Add content related to subscription -->
+                </div>
+
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2023 DPSYSTEM. All rights reserved.</p>
+    </footer>
+
+    <script>
+        function showTab(tabName) {
+            // Hide all tab contents
+            var tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(function (tabContent) {
+                tabContent.classList.remove('active');
+            });
+
+            // Deactivate all tabs
+            var tabs = document.querySelectorAll('.tab');
+            tabs.forEach(function (tab) {
+                tab.classList.remove('active');
+            });
+
+            // Show the selected tab content
+            document.getElementById(tabName).classList.add('active');
+
+            // Activate the selected tab
+            document.querySelector('[onclick="showTab(\'' + tabName + '\')"]').classList.add('active');
+        }
+
+        // Set the default active tab to "Profile"
+        showTab('profile');
+    </script>
+<script>
+// Retrieve the doctor id from the context (if available)
+var doctor_id = '{{ id|default:"" }}';
+function updateProfile() {
+    var formData = new FormData();
+    formData.append('first_name', document.getElementById('first_name').value);
+    formData.append('last_name', document.getElementById('last_name').value);
+    formData.append('dob', document.getElementById('dob').value);
+
+    var fileInput = document.getElementById('profile_image');
+    if (fileInput.files.length > 0) {
+        formData.append('profile_image', fileInput.files[0]);
+    }
+
+    // Get access token from session storage
+    var accessToken = sessionStorage.getItem('accessToken');
+    if (!accessToken) {
+        alert("You're not logged in. Please login again.");
+        window.location.href = '/account/login/';
+        return;
+    }
+
+    var status = '{{status}}';
+
+    if (status == 'new') {
+        console.log("Creating new doctor profile");
+        // For new profiles, use the list-create endpoint
+        fetch('{% url "doctor-list-create" %}', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + accessToken,
+                'X-CSRFToken': document.querySelector('input[name=csrfmiddlewaretoken]').value,
+            },
+            body: formData,
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => {
+                    throw new Error(JSON.stringify(data));
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log(data);
+            alert("Profile created successfully!");
+            // Refresh to show updated profile
+            window.location.reload();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert("Failed to create profile. Please try again.");
+        });
+    } else {
+        console.log("Updating doctor profile");
+        // For existing profiles, use the doctor-detail endpoint with the correct ID
+        var doctorId = '{{id}}'; // This should be the Doctor model ID
+
+        // Since we don't have the Doctor model ID directly in the template,
+        // we'll need to make a GET request first to find it
+        fetch('{% url "doctor-list-create" %}', {
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + accessToken,
+            },
+        })
+        .then(response => response.json())
+        .then(doctors => {
+            // Find the doctor profile that belongs to this user
+            var currentUserId = '{{id}}';
+            var doctorProfile = null;
+
+            for (var i = 0; i < doctors.length; i++) {
+                if (doctors[i].user == currentUserId) {
+                    doctorProfile = doctors[i];
+                    break;
+                }
+            }
+
+            if (!doctorProfile) {
+                throw new Error('Could not find your doctor profile');
+            }
+
+            // Now we have the doctor ID, we can make the update request
+            var updateUrl = '/account/doctors/' + doctorProfile.id + '/';
+
+            return fetch(updateUrl, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': 'Bearer ' + accessToken,
+                    'X-CSRFToken': document.querySelector('input[name=csrfmiddlewaretoken]').value,
+                },
+                body: formData,
+            });
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => {
+                    throw new Error(JSON.stringify(data));
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log(data);
+            alert("Profile updated successfully!");
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert("Failed to update profile. Please try again.");
+        });
+    }
+}
+
+</script>
+</body>
+</html>

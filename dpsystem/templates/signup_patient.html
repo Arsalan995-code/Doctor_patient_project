@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <title>DPSYSTEM - Patient Signup</title>
+</head>
+<body>
+    <header>
+        <h1>DPSYSTEM</h1>
+        <nav>
+            <ul>
+                <li><a href="../index.html">Home</a></li>
+                <li><a href="#">About Us</a></li>
+                <li><a href="#">Contact Us</a></li>
+                <li><a href="accounts/login">Signup/Login</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <section>
+            <h2>Patient Signup</h2>
+            <form id="patientform">
+                {% csrf_token %}
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username" required>
+
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" required>
+
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" required>
+
+                <!-- Set the default value of Role to 1 for Doctor -->
+                <input type="hidden" id="role" name="role" value="2">
+
+                <button type="submit" onclick="submitForm()">Sign up</button>
+            </form>
+            <p>Already have an account? <a href="/accounts/login/">Login</a></p>
+            <div id="successMessage" style="color: green;"></div>
+            <div id="errorMessage" style="color: red;"></div>
+
+        </section>
+    </main>
+<footer>
+        <p>© 2023 DPSYSTEM. All rights reserved.</p>
+</footer>
+<script>
+    function submitForm() {
+        const form = document.getElementById('patientform');
+        const successMessage = document.getElementById('successMessage');
+        const errorMessage = document.getElementById('errorMessage');
+        const formData = new FormData(form);
+
+        fetch('{% url "customuser-list-create" %}', {
+            method: 'POST',
+            body: formData,
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Success:', data);
+            successMessage.innerText = 'Signup successful!';  // Display success message
+            errorMessage.innerText = '';  // Clear error message
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            errorMessage.innerText = 'Signup failed. Please try again.';  // Display error message
+            successMessage.innerText = '';  // Clear success message
+        });
+    }
+</script>
+
+</body>
+</html>

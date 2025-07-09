@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'css/styles.css'%}">
+    <title>DPSYSTEM - Login</title>
+</head>
+<body>
+    <header>
+        <h1>DPSYSTEM</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="#">About Us</a></li>
+                <li><a href="#">Contact Us</a></li>
+                <li><a href="account/login/">Signup/Login</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section>
+            <h2>Login</h2>
+            <form id="loginForm">
+                {% csrf_token %}
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" required>
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" required>
+                <button type="button" onclick="submitLoginForm()">Login</button>
+            </form>
+            <p>Don't have an account? <a href="/account/signup/doctor/">Sign up as a Doctor</a></p>
+            <p>Don't have an account? <a href="/account/signup/patient/">Sign up as a Patient</a></p>
+            <div id="errorMessage" style="color: red;"></div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2023 DPSYSTEM. All rights reserved.</p>
+    </footer>
+
+<script>
+    function submitLoginForm() {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const errorMessage = document.getElementById('errorMessage');
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        // Clear previous error messages
+        errorMessage.innerText = '';
+
+        // Create the request data
+        const requestData = {
+            email: email,
+            password: password
+        };
+
+        fetch('/account/api/login/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify(requestData)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Login failed');
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Response data:', data);
+            if (data.access_token) {
+                // Successful login
+                const userRole = data.role;
+                console.log('Successful login');
+                console.log(data.access_token);
+                console.log(data.role);
+
+                // Store the access token in sessionStorage
+                sessionStorage.setItem('accessToken', data.access_token);
+                console.log('Access Token stored in sessionStorage.');
+
+                // Redirect based on user role
+                if (userRole === 1) {
+                    // Doctor
+                    if (data.package) {
+                        window.location.href = `/dashboard/doctor_dashboard/?user_id=${data.user_id}`;
+                    } else {
+                        window.location.href = `/dashboard/subscription_package/?user_id=${data.user_id}`;
+                    }
+                } else if (userRole === 2) {
+                    // Patient
+                    window.location.href = '/dashboard/patient_dashboard/';
+                } else {
+                    // Handle other roles or unexpected cases
+                    errorMessage.innerText = 'Invalid user role';
+                }
+            } else {
+                errorMessage.innerText = data.message || 'Login failed. Please try again.';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            errorMessage.innerText = 'An unexpected error occurred. Please try again later.';
+        });
+    }
+</script>
+</body>
+</html>
+

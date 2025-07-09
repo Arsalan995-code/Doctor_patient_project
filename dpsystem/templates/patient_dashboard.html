@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'css/styles.css'%}">
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <title>DPSYSTEM - Patient Dashboard</title>
+    <style>
+        /* Tab styling */
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            margin-right: 20px;
+            cursor: pointer;
+            padding: 10px;
+            background-color: #333;
+            color: #fff;
+            border: 1px solid #555;
+            border-radius: 5px;
+        }
+
+        .tab.active {
+            background-color: #555;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .profile-image-preview {
+            max-width: 200px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+        }
+
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-danger {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+
+        .complete-profile-notice {
+            background-color: #cce5ff;
+            border: 1px solid #b8daff;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            color: #004085;
+        }
+
+        .required-field::after {
+            content: " *";
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>DPSYSTEM</h1>
+        <button style="text-align:right;"><a href="{% url 'logout' %}">Logout</a></button>
+        <nav>
+            <ul>
+                <li><a href="{% url 'index' %}">Home</a></li>
+                <li><a href="#">About Us</a></li>
+                <li><a href="#">Contact Us</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section>
+            <h2>Patient Dashboard</h2>
+
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            {% if not profile_complete %}
+            <div class="complete-profile-notice">
+                <h4>Complete Your Profile</h4>
+                <p>Please complete your profile information to continue. This information is required for your doctor to provide proper care.</p>
+            </div>
+            {% endif %}
+
+            <!-- Tabs -->
+            <div class="tabs">
+                <div class="tab active" onclick="showTab('profile')">Profile</div>
+                {% if profile_complete %}
+                <div class="tab" onclick="showTab('prescriptions')">Prescriptions</div>
+                {% endif %}
+            </div>
+
+            <!-- Profile Tab Content -->
+            <div class="tab-content active" id="profile">
+                <p>{% if record %}Update{% else %}Complete{% endif %} your profile information:</p>
+
+                <form id="patientProfileForm" method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+
+                    <div class="form-group">
+                        <label for="doctor_referral_id" class="required-field">Doctor Referral ID</label>
+                        <input type="text" class="form-control" id="doctor_referral_id" name="doctor_referral_id" {% if record %}value="{{ refid }}"{% endif %} required>
+                        <small class="form-text text-muted">This ID is provided by your doctor</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="first_name" class="required-field">First Name</label>
+                        <input type="text" class="form-control" id="first_name" name="first_name" {% if record %}value="{{ firstname }}"{% endif %} required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="last_name" class="required-field">Last Name</label>
+                        <input type="text" class="form-control" id="last_name" name="last_name" {% if record %}value="{{ lastname }}"{% endif %} required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="dob" class="required-field">Date of Birth</label>
+                        <input type="date" class="form-control" id="dob" name="dob" {% if record %}value="{{ dob|date:'Y-m-d' }}"{% endif %} required>
+                    </div>
+
+                    {% if image %}
+                    <div class="form-group">
+                        <label>Current Profile Image:</label>
+                        <div>
+                            <img src="{{ image.url }}" alt="Profile Image" class="profile-image-preview" id="imagePreview">
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="form-group">
+                        <label>Profile Image Preview:</label>
+                        <div>
+                            <img src="{% static 'images/default-profile.png' %}" alt="Default Profile" class="profile-image-preview" id="profileImagePreview">
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="form-group">
+                        <label for="profile_image">Profile Image:</label>
+                        <input type="file" class="form-control-file" id="profile_image" name="profile_image" accept="image/*">
+                    </div>
+
+                    <input type="hidden" name="user_id" value="{{ user.id }}">
+                    <input type="hidden" name="status" value="{{ status }}">
+
+                    <button type="submit" class="btn btn-primary">{% if record %}Update{% else %}Save{% endif %} Profile</button>
+                </form>
+            </div>
+
+            <!-- Prescriptions Tab Content -->
+            <div class="tab-content" id="prescriptions">
+                <p>Your prescriptions information.</p>
+
+                {% if prescriptions %}
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Issue</th>
+                            <th>Prescription</th>
+                            <th>Next Visit</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for prescription in prescriptions %}
+                            <tr>
+                                <td>{{ prescription.issue_description }}</td>
+                                <td>{{ prescription.prescription_text }}</td>
+                                <td>{{ prescription.next_visit_date }}</td>
+                                <td>{{ prescription.created_at }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="4">No prescriptions found.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="alert alert-info">
+                    No prescriptions available yet.
+                </div>
+                {% endif %}
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2023 DPSYSTEM. All rights reserved.</p>
+    </footer>
+
+    <script>
+        function showTab(tabName) {
+            // Hide all tab contents
+            var tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(function (tabContent) {
+                tabContent.classList.remove('active');
+            });
+
+            // Deactivate all tabs
+            var tabs = document.querySelectorAll('.tab');
+            tabs.forEach(function (tab) {
+                tab.classList.remove('active');
+            });
+
+            // Show the selected tab content
+            document.getElementById(tabName).classList.add('active');
+
+            // Activate the selected tab
+            document.querySelector('[onclick="showTab(\'' + tabName + '\')"]').classList.add('active');
+        }
+
+        // Set the default active tab to "Profile"
+        showTab('profile');
+
+        // Preview uploaded image before submission
+        document.getElementById('profile_image').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const previewElement = document.getElementById('profileImagePreview') || document.getElementById('imagePreview');
+                    if (previewElement) {
+                        previewElement.src = event.target.result;
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Form validation
+        document.getElementById('patientProfileForm').addEventListener('submit', function(e) {
+            const referralId = document.getElementById('doctor_referral_id').value;
+            const firstName = document.getElementById('first_name').value;
+            const lastName = document.getElementById('last_name').value;
+            const dob = document.getElementById('dob').value;
+
+            let isValid = true;
+            let errorMessage = '';
+
+            if (!referralId) {
+                errorMessage += 'Doctor Referral ID is required.\n';
+                isValid = false;
+            }
+
+            if (!firstName) {
+                errorMessage += 'First Name is required.\n';
+                isValid = false;
+            }
+
+            if (!lastName) {
+                errorMessage += 'Last Name is required.\n';
+                isValid = false;
+            }
+
+            if (!dob) {
+                errorMessage += 'Date of Birth is required.\n';
+                isValid = false;
+            }
+
+            if (!isValid) {
+                e.preventDefault();
+                alert('Please fill in all required fields:\n' + errorMessage);
+            }
+        });
+
+        {% if not profile_complete %}
+            // Force profile tab to be active when profile is incomplete
+            document.addEventListener('DOMContentLoaded', function() {
+                showTab('profile');
+                // Disable clicking on other tabs if profile is incomplete
+                document.querySelectorAll('.tab').forEach(function(tab) {
+                    if (!tab.classList.contains('active')) {
+                        tab.style.pointerEvents = 'none';
+                        tab.style.opacity = '0.5';
+                    }
+                });
+            });
+        {% endif %}
+    </script>
+</body>
+</html>
